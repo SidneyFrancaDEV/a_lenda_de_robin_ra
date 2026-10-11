@@ -1,0 +1,21 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.vcxproj.user
+
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+**/x64/
+**/x86/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.log
+
+# NuGet packages (restored from packages.config)
+packages/
