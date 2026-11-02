@@ -85,19 +85,6 @@ int state_robin_ra_sprite(RobinRaSprites robin_ra){
 	}
 }
 
-void preencher_array_sprites(ALLEGRO_BITMAP *img, ALLEGRO_BITMAP* array[], int colunas, int linhas, int  linha_escolha){
-
-	float w = al_get_bitmap_width(img) / colunas;
-	float h = al_get_bitmap_height(img) / linhas;
-
-	float h_line = h * linha_escolha;
-
-	for(int i = 0; i < colunas; i++){
-		array[i] = al_create_sub_bitmap(img, i * w, h_line, w, h);
-	}
-
-}
-
 int main() {
 	if (!al_init()) {
 		printf("ERRO AO INICIALIZAR O ALLEGRO\n");
@@ -158,12 +145,10 @@ int main() {
 	float original_position_x = 0.0f;
 	float original_position_y = 0.0f;
 
-	// ROBIN_RA
+	// ROBIN RA
 
-	float current_robin_ra_x = original_position_x;
-	float current_robin_ra_y = original_position_y;
-	float width_roin_ra = 100.0f;
-	float height_robin_ra = 100.0f;
+	float current_x_robin_ra = original_position_x;
+	float current_y_robin_ra = original_position_y;
 
 	// ARROW
 	float current_x = original_position_x;
@@ -180,58 +165,36 @@ int main() {
 	float obs_height = 3.0f;
 	float obs_thickness = 0.3f;
 
-
+	// ========================================================================
 	// SPRITES
-
-	//FLECHA
-	ALLEGRO_BITMAP* arrowImage = al_load_bitmap("Imagens/arrow.png");	// carregando 
-
+	// ========================================================================
+	
 	//CENÁRIO
 	ALLEGRO_BITMAP* backdground = al_load_bitmap("Imagens/Cenarios/fundo_treinamento.jpg");
 
 	//ROBIN_RA
+
 	ALLEGRO_BITMAP* robinRa = al_load_bitmap("Imagens/Personagens/robin_ra.png");
 
-	RobinRaSprites robin_ra_enum_state  = STANDARD_POSITION;
-	int roobin_ra_state = state_robin_ra_sprite(robin_ra_enum_state);
+	float sprite_widht_robin_ra = al_get_bitmap_width(robinRa) / 8;
+	float sprite_height_robin_ra = al_get_bitmap_height(robinRa) /4;
 
+	int robin_ra_state = state_robin_ra_sprite(STANDARD_POSITION);
 
+	float widht_robin_ra = 80.00;
+	float height_robin_ra = 80.00;
 
-	// LOOP PREENCHENDO MATRIZ DE SPRITES
+	int cont_sprite_robin_ra = 0;
+	int cont_time_robin_ra = 0;
 
-	ALLEGRO_BITMAP* sprites_robin_ra[4][8];
-
-	int larg = al_get_bitmap_width(robinRa) / 8;
-	int alt = al_get_bitmap_height(robinRa) / 4;
-	int cont_widht = 0;
-
-	for (int linha = 0; linha < 4; linha++) {
-		for (int coluna = 0; coluna < 8; coluna++) {
-			sprites_robin_ra[linha][coluna] = al_create_sub_bitmap(robinRa, coluna * larg, linha * alt, larg, alt);
-		}
-	}
+	//FLECHA
+	ALLEGRO_BITMAP* arrowImage = al_load_bitmap("Imagens/arrow.png");	
 
 	// Resultado da trajetória: 0 = voando/pronto, 1 = acertou, 2 = bateu em obstáculo, 3 = caiu no solo
+
 	int traj_result = 0;
 
-	Robin robin_ra = { current_robin_ra_x, current_robin_ra_y, width_roin_ra, height_robin_ra};
 	Arrow arrow = { current_x, current_y, step_x, 25, 50, false };		// Arrow var
-
-
-	//Target target = { scale_to_screen_x(target_x), scale_to_screen_y(target_y_min), targetWidht, targetHeight, true };
-	/*bool colidVerificator(Arrow one, Target two) {
-
-		if (one.active == true && two.active == true) {
-
-			return ((one.pos_x - (one.width / 2.0f)) < (two.pos_x + (two.width / 2.0f)) &&
-				(one.pos_x + (one.width / 2.0f)) > (two.pos_x - (two.width / 2.0f)) &&
-				(one.pos_y - (one.height / 2.0f)) < (two.pos_y + (two.height / 2.0f)) &&
-				(one.pos_y + (one.height / 2.0f)) > (two.pos_y - (two.height / 2.0f)));
-		}
-		else {
-			return false;
-		}
-	}*/
 
 	al_start_timer(timer);
 
@@ -376,28 +339,32 @@ int main() {
 				c_yellow, 6.0f
 			);
 
-			ALLEGRO_BITMAP* robin_ra_teste[8];
+			// DESENHAR ROBIN RA
 
-			preencher_array_sprites(robinRa, &robin_ra_teste, 8, 4, 0);
+			if (cont_sprite_robin_ra == 8)
+				cont_sprite_robin_ra = 0;
 
-			if (cont_teste == 8 * 60)
-				cont_teste = 0;
-			else
-				cont_teste += 1 * 60;
+			al_draw_scaled_bitmap(
+				robinRa,
+				sprite_widht_robin_ra * cont_sprite_robin_ra, sprite_height_robin_ra * robin_ra_state,
+				sprite_widht_robin_ra, sprite_height_robin_ra,
+				current_x_robin_ra + 10, current_y_robin_ra  + 10,
+				widht_robin_ra, height_robin_ra,
+				0
+			);
 
-			al_draw_scaled_bitmap(robin_ra_teste[cont_teste / 60], 0, 0, al_get_bitmap_width(robin_ra_teste[cont_teste / 60]), al_get_bitmap_height(robin_ra_teste[cont_teste / 60]), scale_to_screen_x(robin_ra.pos_x) - (robin_ra.width / 2), scale_to_screen_y(robin_ra.pos_y) - (robin_ra.height / 2), robin_ra.width, robin_ra.height, 0);
+			if (cont_time_robin_ra == 60 / 3) {
+				cont_time_robin_ra = 0;
+				cont_sprite_robin_ra ++;
+			}
+			else {
+				cont_time_robin_ra++;
+			}
 
-			//al_draw_scaled_bitmap(sprites_robin_ra[1][cont_widht / 60], 0, 0, al_get_bitmap_width(sprites_robin_ra[1][cont_widht / 60]), al_get_bitmap_height(sprites_robin_ra[1][cont_widht / 60]), scale_to_screen_x(robin_ra.pos_x) - (robin_ra.width / 2), scale_to_screen_y(robin_ra.pos_y) - (robin_ra.height / 2), robin_ra.width, robin_ra.height, 0);
-			
-			//if (cont_widht == 240)
-				//cont_widht = 0;
-			//else
-				//cont_widht+= 3;
-				// 
-			// al_draw_scaled_bitmap(robinRa, 0, 0, 150, 150, scale_to_screen_x(robin_ra.pos_x) - (robin_ra.width / 2), scale_to_screen_y(robin_ra.pos_y) - (robin_ra.height / 2), robin_ra.width, robin_ra.height, 0); // ROBIN RA BITMAP
 
-			// PROJÉTIL
+
 			ALLEGRO_COLOR arrow_color = c_white;
+
 			if (traj_result == 1) arrow_color = c_green;
 			else if (traj_result == 2 || traj_result == 3) arrow_color = c_red;
 
@@ -405,7 +372,6 @@ int main() {
 			arrow.pos_y= scale_to_screen_y(current_y);
 
 
-			//al_draw_scaled_bitmap(arrowImage, 0, 0, 20, 43, screen_x, screen_y, arrow.width, arrow.height, 0); // ARROW BITMAP
 			if(arrow.is_flying)
 				al_draw_filled_circle(arrow.pos_x, arrow.pos_y, 4.0f, arrow_color);
 
