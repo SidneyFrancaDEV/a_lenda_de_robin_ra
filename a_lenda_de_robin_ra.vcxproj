@@ -133,7 +133,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="game_config.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="math_engine.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="game_config.h" />
+    <ClInclude Include="math_engine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
