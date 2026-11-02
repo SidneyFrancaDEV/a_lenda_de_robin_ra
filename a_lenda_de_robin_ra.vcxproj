@@ -76,6 +76,7 @@
     <Allegro_AddonImage>true</Allegro_AddonImage>
     <Allegro_AddonVideo>true</Allegro_AddonVideo>
     <Allegro_AddonDialog>true</Allegro_AddonDialog>
+    <IncludePath>$(ProjectDir)include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -130,16 +131,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include=".gitignore" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="game_config.c" />
-    <ClCompile Include="main.c" />
-    <ClCompile Include="math_engine.c" />
+    <ClCompile Include="src\game_config.c" />
+    <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\math_engine.c" />
+    <ClCompile Include="src\sprites_maneger.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="game_config.h" />
-    <ClInclude Include="math_engine.h" />
+    <ClInclude Include="include\game_config.h" />
+    <ClInclude Include="include\math_engine.h" />
+    <ClInclude Include="include\sprites_maneger.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\backgrounds\background_treinamento.jpg" />
+    <Image Include="assets\sprites\robin_ra.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

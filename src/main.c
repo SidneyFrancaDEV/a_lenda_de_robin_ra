@@ -5,8 +5,9 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_image.h>
 
-#include "game_config.h"
-#include "math_engine.h"
+#include "../include/game_config.h"
+#include "../include/math_engine.h"
+#include "../include/sprites_maneger.h"
 
 typedef struct Arrow {
     float pos_x;
@@ -80,15 +81,34 @@ int main() {
     // OBSTÁCULO 
     float obs_x = 2.0f;
     float obs_height = 3.0f;
-    float obs_thickness = 0.3f;
+    float obs_thickness = 0.3f;       
 
-    // SPRITE PERSONAGEM
-    ALLEGRO_BITMAP* arrowImage = al_load_bitmap("arrow.png");
-    ALLEGRO_BITMAP* backdground = al_load_bitmap("fundo_treinamento.jpg");
-    ALLEGRO_BITMAP* robinRa = al_load_bitmap("robin_ra_sprites.png");
+    // ========================================================================
+    // INICIALIZAÇÃO CENÁRIO
+    // ========================================================================
+
+    ALLEGRO_BITMAP* backdground = al_load_bitmap("assets/backgrounds/background_treinamento.jpg");
+
+    // ========================================================================
+    // INICIALIZAÇÃO PERSONAGENS
+    // ========================================================================
+   
+    // ROBIN RA
 
     float chac_width = 50.0f;
     float chac_height = 60.0f;
+
+    ALLEGRO_BITMAP* robin_ra_sprite = al_load_bitmap("assets/sprites/robin_ra.png");
+
+    PlayerSprite robin_ra = {
+        robin_ra_sprite,
+        chac_width, WORLD_BASE_Y - chac_height,
+        100, 100,
+        0,
+        DEFAULT
+    };
+
+    float cont_current_sprite = 0;
 
     // Resultado da trajetória: 0 = voando/pronto, 1 = acertou, 2 = bateu em obstáculo, 3 = caiu no solo
     int traj_result = 0;
@@ -236,10 +256,19 @@ int main() {
                 c_yellow, 6.0f
             );
 
-            // PERSONAGEM
-            if (robinRa) {
-                al_draw_scaled_bitmap(robinRa, 0, 0, 150, 150, 50, WORLD_BASE_Y - chac_height, chac_width, chac_height, 0);
+            //DESENHAR ROBIN RA E CONTADOR DE ESTADO
+
+            if (cont_current_sprite >= FPS / 3) {
+                cont_current_sprite = 0;
+                robin_ra.current_sprite++;
             }
+
+            if (robin_ra.current_sprite == 8)
+                robin_ra.current_sprite = 0;
+
+            draw_player(robin_ra);
+            cont_current_sprite++;
+
 
             // PROJÉTIL
             ALLEGRO_COLOR arrow_color = c_white;
