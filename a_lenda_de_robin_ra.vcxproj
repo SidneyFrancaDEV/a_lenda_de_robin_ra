@@ -135,9 +135,11 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="include\param_selector.h" />
     <ClCompile Include="src\game_config.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\math_engine.c" />
+    <ClCompile Include="src\param_selector.c" />
     <ClCompile Include="src\sprites_maneger.c" />
   </ItemGroup>
   <ItemGroup>
