@@ -4,10 +4,12 @@
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_image.h>
+#include <allegro5/mouse.h>
 
 #include "../include/game_config.h"
 #include "../include/math_engine.h"
 #include "../include/sprites_maneger.h"
+#include "../include/param_selector.h"
 
 typedef struct Arrow {
     float pos_x;
@@ -20,7 +22,7 @@ typedef struct Arrow {
     bool is_flying;
 } Arrow;
 
-int main() {
+int main(){
     if (!al_init()) {
         printf("ERRO AO INICIALIZAR O ALLEGRO\n");
         return 1;
@@ -42,9 +44,11 @@ int main() {
     al_init_image_addon();
     al_init_font_addon();
     al_install_keyboard();
+    al_install_mouse();
 
     ALLEGRO_FONT* font = al_create_builtin_font();
 
+    al_register_event_source(event_queue, al_get_mouse_event_source());
     al_register_event_source(event_queue, al_get_keyboard_event_source());
     al_register_event_source(event_queue, al_get_display_event_source(display));
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
@@ -61,13 +65,26 @@ int main() {
     bool game_running = true;
 
     // ========================================================================
+    // BOTÕES DE SOMA E SUBTRAÇÃO
+    // ========================================================================
+        
+    Button soma = { al_get_display_width(display) - 70 ,al_get_display_height(display) - 70, 50, 50, ADDITION};
+
+    Button subtracao = { al_get_display_width(display) - 70 ,al_get_display_height(display) - 160, 50, 50, SUBTRACTION };
+
+    // ========================================================================
     // ESCOLHA DA FUNÇÃO E PARÂMETROS INICIAIS
     // ========================================================================
+
+    FunctionParams a = { 0.0f, false, 10, -1};
+    FunctionParams b = { 0.0f, false, 10,  -1};
+    FunctionParams c = { 0.0f, false, 10, -1};
+
     FunctionType current_func = FUNC_NONE;
 
-    float a = 0.0f;
-    float b = 0.0f;
-    float c = 0.0f;
+    //float a = 0.0f;
+    //float b = 0.0f;
+    //float c = 0.0f;
 
     float current_x = 0.0f;
     float current_y = 0.0f;
@@ -130,43 +147,80 @@ int main() {
                 game_running = false;
             }
 
+           // ========================================================================
+           // VERIFICAÇÃO DO TIPO DE FUNÇÃO
+           // ========================================================================
+
             if (event.keyboard.keycode == ALLEGRO_KEY_1) {
                 current_func = FUNC_LINEAR;
-                a = 2.0f; b = 0.0f; c = 0.0f;
+                //a = 2.0f; b = 0.0f; c = 0.0f;
+                //a.value = 2.0f; b.value = 0.0f; c.value = 0.0f;
                 arrow.is_flying = false; current_x = 0.0f;
-                current_y = calculate_trajectory(current_func, 0.0f, a, b, c);
+                current_y = calculate_trajectory(current_func, 0.0f, a.value, b.value, c.value);
             }
             else if (event.keyboard.keycode == ALLEGRO_KEY_2) {
                 current_func = FUNC_QUADRATIC;
-                a = -1.0f; b = 4.0f; c = 0.0f;
+                //a = -1.0f; b = 4.0f; c = 0.0f;
+                //a.value = -1.0f; b.value = 4.0f; c.value = 0.0f;
                 arrow.is_flying = false; current_x = 0.0f;
-                current_y = calculate_trajectory(current_func, 0.0f, a, b, c);
+                current_y = calculate_trajectory(current_func, 0.0f, a.value, b.value, c.value);
             }
             else if (event.keyboard.keycode == ALLEGRO_KEY_3) {
                 current_func = FUNC_EXPONENTIAL;
-                a = 1.0f; b = 2.0f; c = 0.0f;
+                ///a = 1.0f; b = 2.0f; c = 0.0f;
+                //a.value = 1.0f; b.value = 2.0f; c.value = 0.0f;
                 arrow.is_flying = false; current_x = 0.0f;
-                current_y = calculate_trajectory(current_func, 0.0f, a, b, c);
+                current_y = calculate_trajectory(current_func, 0.0f, a.value, b.value, c.value);
             }
             else if (event.keyboard.keycode == ALLEGRO_KEY_4) {
                 current_func = FUNC_LOGARITHMIC;
-                a = 3.0f; b = 2.0f; c = 0.0f;
+                //a = 3.0f; b = 2.0f; c = 0.0f;
+                //a.value = 3.0f; b.value = 2.0f; c.value = 0.0f;
                 arrow.is_flying = false; current_x = 0.0f;
-                current_y = calculate_trajectory(current_func, 0.0f, a, b, c);
+                current_y = calculate_trajectory(current_func, 0.0f, a.value, b.value, c.value);
             }
             else if (event.keyboard.keycode == ALLEGRO_KEY_5) {
                 current_func = FUNC_SINUSOIDAL;
-                a = 2.0f; b = 1.0f; c = 4.0f;
+                //a = 2.0f; b = 1.0f; c = 4.0f;
+                //a.value = 2.0f; b.value = 1.0f; c.value = 4.0f;
                 arrow.is_flying = false; current_x = 0.0f;
-                current_y = calculate_trajectory(current_func, 0.0f, a, b, c);
+                current_y = calculate_trajectory(current_func, 0.0f, a.value, b.value, c.value);
             }
 
             if (event.keyboard.keycode == ALLEGRO_KEY_SPACE) {
-                if (current_func != FUNC_NONE || calculate_trajectory(current_func, 0.0f, a, b, c) != 0) {
+                if (current_func != FUNC_NONE || calculate_trajectory(current_func, 0.0f, a.value, b.value, c.value) != 0) {
                     current_x = 0.0f;
-                    current_y = calculate_trajectory(current_func, 0.0f, a, b, c);
+                    current_y = calculate_trajectory(current_func, 0.0f, a.value, b.value, c.value);
                     traj_result = 0;
                     arrow.is_flying = true;
+                }
+            }
+
+            // ========================================================================
+            // VERIFICAÇÃO DE QUAL PARAMETRO O USUARIO VAI ALTERAR
+            // ========================================================================
+
+            if (event.keyboard.keycode == ALLEGRO_KEY_A){
+                a.state = !a.state;
+                if (a.state) {
+                    b.state = false;
+                    c.state = false;
+                }
+            }
+
+            if (event.keyboard.keycode == ALLEGRO_KEY_B) {
+                b.state = !b.state;
+                if (b.state) {
+                    a.state = false;
+                    c.state = false;
+                }
+            }
+
+            if (event.keyboard.keycode == ALLEGRO_KEY_C) {
+                c.state = !c.state;
+                if (c.state) {
+                    a.state = false;
+                    b.state = false;
                 }
             }
         }
@@ -176,7 +230,7 @@ int main() {
 
             if (arrow.is_flying) {
                 current_x += step_x;
-                current_y = calculate_trajectory(current_func, current_x, a, b, c);
+                current_y = calculate_trajectory(current_func, current_x, a.value, b.value, c.value);
 
                 // 1. Checagem de Colisão com o Obstáculo
                 if (current_x >= obs_x && current_x <= (obs_x + obs_thickness)) {
@@ -190,7 +244,7 @@ int main() {
                 // 2. Checagem de Chegada no Alvo
                 if (arrow.is_flying && current_x >= target_x) {
                     current_x = target_x;
-                    current_y = calculate_trajectory(current_func, current_x, a, b, c);
+                    current_y = calculate_trajectory(current_func, current_x, a.value, b.value, c.value);
                     arrow.is_flying = false;
 
                     if (current_y >= target_y_min && current_y <= target_y_max) {
@@ -213,6 +267,31 @@ int main() {
             }
         }
 
+        // ========================================================================
+        // ALTERAÇÃO DOS PARAMETROS
+        // ========================================================================
+
+        if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN) {
+            if (event.mouse.button == 1) {
+                float mouse_x = (float)event.mouse.x;
+                float mouse_y = (float)event.mouse.y;
+
+                if (mouse_verificator(soma, mouse_x, mouse_y)) {
+                    if (a.state)
+                        param_operation(&a, soma);
+                   
+                    if (b.state) param_operation(&b, soma);
+                    if (c.state) param_operation(&c, soma);
+                }
+
+                if (mouse_verificator(subtracao, mouse_x, mouse_y)) {
+                    if (a.state) param_operation(&a, subtracao);
+                    if (b.state) param_operation(&b, subtracao);
+                    if (c.state) param_operation(&c, subtracao);
+                }
+            }
+        }
+
         if (redraw && al_is_event_queue_empty(event_queue)) {
             redraw = false;
             al_clear_to_color(al_map_rgb(15, 15, 20));
@@ -227,7 +306,20 @@ int main() {
             al_draw_textf(font, c_white, 20, 20, 0, "Teclas 1-5 Mudar Funcao | [ESPACO] Disparar");
 
             al_draw_filled_rectangle(15, 37, SCREEN_WIDTH - 50, 55, c_black);
-            al_draw_textf(font, (current_func == FUNC_NONE ? c_red : c_yellow), 20, 40, 0, "Modelo Ativo: %s  (a=%.1f, b=%.1f, c=%.1f)", func_names[current_func], a, b, c);
+            al_draw_textf(font, (current_func == FUNC_NONE ? c_red : c_yellow), 20, 40, 0, "Modelo Ativo: %s  (a=%.1f, b=%.1f, c=%.1f)", func_names[current_func], a.value, b.value, c.value);
+
+            al_draw_filled_rectangle(15, 57, SCREEN_WIDTH - 50, 75, c_black);
+
+            if(a.state)
+                al_draw_textf(font, c_green, 20, 60, 0, "Parametro Ativo: (a=%.1f)", a.value);
+            if(b.state)
+                al_draw_textf(font, c_green, 20, 60, 0, "Parametro Ativo: (b=%.1f)", b.value);
+            if(c.state)
+                al_draw_textf(font, c_green, 20, 60, 0, "Parametro Ativo: (c=%.1f)", c.value);
+
+            if (!a.state && !b.state && !c.state)
+                al_draw_textf(font, c_white, 20, 60, 0, "Nenhum Parametro Selecionado");
+
 
             // GRADE E EIXOS CARTESIANOS
             al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(20), scale_to_screen_y(0), c_white, 2.0f);
@@ -269,6 +361,12 @@ int main() {
             draw_player(robin_ra);
             cont_current_sprite++;
 
+
+            //DESENHAR BOTOES DE SUB E SOM
+                
+            al_draw_filled_rectangle(soma.position_x, soma.position_y, soma.position_x + soma.widht, soma.position_y + soma.height, c_white);
+
+            al_draw_filled_rectangle(subtracao.position_x, subtracao.position_y, subtracao.position_x + subtracao.widht, subtracao.position_y + subtracao.height, c_white);
 
             // PROJÉTIL
             ALLEGRO_COLOR arrow_color = c_white;
