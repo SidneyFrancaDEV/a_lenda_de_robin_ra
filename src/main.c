@@ -11,6 +11,7 @@
 #include "../include/sprites_maneger.h"
 #include "../include/param_selector.h"
 #include "../include/game_state.h"
+#include "../hud.h"
 
 void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType* func, FunctionParams* a, FunctionParams* b, FunctionParams* c, Arrow* arrow,Button soma, Button subtracao, int* traj_result) {
     if (event->type == ALLEGRO_EVENT_KEY_DOWN) {
@@ -90,7 +91,7 @@ void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType
     }
 }
 
-void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite* player, float* sprite_timer, int* traj_result, float target_x, float target_y_min, float target_y_max, float obs_x, float obs_height, float obs_thickness) {
+void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite* player, float* sprite_timer, int* traj_result) {
     
     //ALÉM DE ATUALIZAR OS SPRITES, AGORA FAZ A VERIFICAÇÃO DA ANIMAÇÃO DE ATAQUE
 
@@ -124,31 +125,6 @@ void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType
         arrow->pos_x += arrow->vel;
         arrow->pos_y = calculate_trajectory(func, arrow->pos_x, a.value, b.value, c.value);
 
-        if (arrow->pos_x >= obs_x && arrow->pos_x <= obs_x + obs_thickness && arrow->pos_y <= obs_height) {
-            arrow->is_flying = false;
-            player->already_attack = false;
-            *traj_result = 2;
-            printf("Colidiu com o obstaculo em X=%.2f, Y=%.2f\n", arrow->pos_x, arrow->pos_y);
-        }
-
-        if (arrow->is_flying && arrow->pos_x >= target_x) {
-            arrow->pos_x = target_x;
-            arrow->pos_y = calculate_trajectory(func, arrow->pos_x, a.value, b.value, c.value);
-            arrow->is_flying = false;
-            player->already_attack = false;
-
-            if (arrow->pos_y >= target_y_min && arrow->pos_y <= target_y_max) {
-                *traj_result = 1;
-                ctx->score++;
-                printf("ACERTOU O ALVO! Y=%.2f\n", arrow->pos_y);
-            }
-            else {
-                *traj_result = 3;
-                lvl->current_lives--;
-                printf("ERROU O ALVO: Altura final Y=%.2f\n", arrow->pos_y);
-            }
-        }
-
         if (arrow->is_flying && arrow->pos_y < 0.0f && arrow->pos_x > 0.0f) {
             arrow->is_flying = false;
             player->already_attack = false;
@@ -167,7 +143,7 @@ void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType
     }
 }
 
-void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite player, Arrow arrow, Button soma, Button subtracao, int traj_result, float target_x, float target_y_min, float target_y_max, float obs_x, float obs_height, float obs_thickness) {
+void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite player, Arrow arrow, Button soma, Button subtracao, int traj_result) {
     ALLEGRO_COLOR c_white = al_map_rgb(255, 255, 255);
     ALLEGRO_COLOR c_red = al_map_rgb(250, 50, 50);
     ALLEGRO_COLOR c_green = al_map_rgb(50, 220, 50);
@@ -179,20 +155,6 @@ void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, Fu
     if (bg) {
         al_draw_bitmap(bg, 0, 0, 0);
     }
-
-    const char* func_names[] = { "SELECIONE UMA DAS FUNCOES", "LINEAR", "QUADRATICA", "EXPONENCIAL", "LOGARITMICA", "SENOIDAL" };
-    al_draw_filled_rectangle(15, 17, SCREEN_WIDTH - 50, 35, c_black);
-    al_draw_textf(font, c_white, 20, 20, 0, "Teclas 1-5 Mudar Funcao | [ESPACO] Disparar | [ESC] Menu | Score: %d", ctx->score);
-
-    al_draw_filled_rectangle(15, 37, SCREEN_WIDTH - 50, 55, c_black);
-    al_draw_textf(font, (func == FUNC_NONE ? c_red : c_yellow), 20, 40, 0, "Modelo Ativo: %s  (a=%.1f, b=%.1f, c=%.1f)", func_names[func], a.value, b.value, c.value);
-
-    al_draw_filled_rectangle(15, 57, SCREEN_WIDTH - 50, 75, c_black);
-    if (a.state) al_draw_textf(font, c_green, 20, 60, 0, "Parametro Ativo: (a=%.1f)", a.value);
-    if (b.state) al_draw_textf(font, c_green, 20, 60, 0, "Parametro Ativo: (b=%.1f)", b.value);
-    if (c.state) al_draw_textf(font, c_green, 20, 60, 0, "Parametro Ativo: (c=%.1f)", c.value);
-    if (!a.state && !b.state && !c.state) al_draw_textf(font, c_white, 20, 60, 0, "Nenhum Parametro Selecionado");
-
     al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(20), scale_to_screen_y(0), c_white, 2.0f);
     al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(0), scale_to_screen_y(15), c_white, 2.0f);
 
@@ -206,14 +168,6 @@ void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, Fu
         al_draw_line(scale_to_screen_x(0) - 4, sy, scale_to_screen_x(0) + 4, sy, c_white, 1.5f);
     }
 
-    al_draw_filled_rectangle(scale_to_screen_x(obs_x), scale_to_screen_y(obs_height), scale_to_screen_x(obs_x + obs_thickness), scale_to_screen_y(0.0f), c_red);
-    al_draw_line(scale_to_screen_x(target_x), scale_to_screen_y(target_y_min), scale_to_screen_x(target_x), scale_to_screen_y(target_y_max), c_yellow, 6.0f);
-
-    draw_player(player);
-
-    al_draw_filled_rectangle(soma.position_x, soma.position_y, soma.position_x + soma.widht, soma.position_y + soma.height, c_white);
-    al_draw_filled_rectangle(subtracao.position_x, subtracao.position_y, subtracao.position_x + subtracao.widht, subtracao.position_y + subtracao.height, c_white);
-
     ALLEGRO_COLOR arrow_color = c_white;
     if (traj_result == 1) arrow_color = c_green;
     else if (traj_result == 2 || traj_result == 3) arrow_color = c_red;
@@ -221,6 +175,10 @@ void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, Fu
     if (arrow.is_flying || arrow.pos_x > 0.0f) {
         al_draw_filled_circle(scale_to_screen_x(arrow.pos_x), scale_to_screen_y(arrow.pos_y), 4.0f, arrow_color);
     }
+
+    render_hud();
+    //draw_player(player);
+  
 }
 
 int main(void) {
@@ -306,7 +264,7 @@ int main(void) {
             case STATE_MENU:
                 break;
             case STATE_PLAYING:
-                playing_update(&game_context, &level_state, &arrow, current_func, a, b, c, &robin_ra, &sprite_timer, &traj_result, target_x, target_y_min, target_y_max, obs_x, obs_height, obs_thickness);
+                playing_update(&game_context, &level_state, &arrow, current_func, a, b, c, &robin_ra, &sprite_timer, &traj_result);
                 break;
             case STATE_GAME_OVER:
                 break;
@@ -323,7 +281,7 @@ int main(void) {
                 menu_render(font);
                 break;
             case STATE_PLAYING:
-                playing_render(background, font, &game_context, current_func, a, b, c, robin_ra, arrow, soma, subtracao, traj_result, target_x, target_y_min, target_y_max, obs_x, obs_height, obs_thickness);
+                playing_render(background, font, &game_context, current_func, a, b, c, robin_ra, arrow, soma, subtracao, traj_result);
                 break;
             case STATE_GAME_OVER:
                 game_over_render(font);

@@ -1,6 +1,7 @@
 #include "../include/game_config.h"
 #include <allegro5/allegro5.h>
 
+
 float scale_to_screen_x(float math_x) {
     return WORLD_BASE_X + (math_x * WORLD_SCALE);
 }

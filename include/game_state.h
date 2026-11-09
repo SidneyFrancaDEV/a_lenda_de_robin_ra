@@ -26,7 +26,7 @@ typedef struct {
     // quero adicionar as fases aqui
     int current_lives;
     int current_score;
-}LevelState;
+} LevelState;
 
 void menu_process_events(ALLEGRO_EVENT* event, GameContext* ctx);
 void game_over_process_events(ALLEGRO_EVENT* event, GameContext* ctx, LevelState* lvl);

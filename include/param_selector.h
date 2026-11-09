@@ -1,5 +1,5 @@
 #ifndef PARAM_SELECTOR_H
-#define PARAM_SELECTO_H
+#define PARAM_SELECTOR_H
 
 #include <stdbool.h>
 
