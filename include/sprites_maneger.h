@@ -19,9 +19,21 @@ typedef struct {
     float position_Y;
 	float width;
     float height;
+    bool already_attack;
     int current_sprite;
     CharacterState state;
 }PlayerSprite;
+
+//APESAR DA FLECHA NAO TER SPRITE, EU COLOQUEI AQUI PQ A GENTE VAI ADICIONAR DEPOIS
+
+typedef struct Arrow {
+    float pos_x;
+    float pos_y;
+    float vel;
+    float width;
+    float height;
+    bool is_flying;
+} Arrow;
 
 void draw_player(PlayerSprite player);
 void destroy_player(PlayerSprite* player);

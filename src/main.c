@@ -10,42 +10,9 @@
 #include "../include/math_engine.h"
 #include "../include/sprites_maneger.h"
 #include "../include/param_selector.h"
+#include "../include/game_state.h"
 
-typedef struct Arrow {
-    float pos_x;
-    float pos_y;
-    float vel;
-    float width;
-    float height;
-    bool is_flying;
-} Arrow;
-
-typedef struct {
-    GameState current_state;
-    int score;
-    bool is_running;
-} GameContext;
-
-void menu_process_events(ALLEGRO_EVENT* event, GameContext* ctx) {
-    if (event->type == ALLEGRO_EVENT_KEY_DOWN) {
-        if (event->keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
-            ctx->is_running = false;
-            ctx->current_state = STATE_EXIT;
-        }
-        else if (event->keyboard.keycode == ALLEGRO_KEY_ENTER) {
-            ctx->current_state = STATE_PLAYING;
-        }
-    }
-}
-
-void menu_render(ALLEGRO_FONT* font) {
-    al_clear_to_color(al_map_rgb(20, 20, 30));
-    al_draw_text(font, al_map_rgb(255, 255, 255), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 20, ALLEGRO_ALIGN_CENTER, "=== A LENDA DE ROBIN RÃ ===");
-    al_draw_text(font, al_map_rgb(240, 200, 20), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 10, ALLEGRO_ALIGN_CENTER, "Pressione [ENTER] para Iniciar");
-    al_draw_text(font, al_map_rgb(80, 80, 80), SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 30, ALLEGRO_ALIGN_CENTER, "Pressione [ESC] para Sair");
-}
-
-void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType* func, FunctionParams* a, FunctionParams* b, FunctionParams* c, Arrow* arrow, Button soma, Button subtracao, int* traj_result) {
+void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType* func, FunctionParams* a, FunctionParams* b, FunctionParams* c, Arrow* arrow,Button soma, Button subtracao, int* traj_result) {
     if (event->type == ALLEGRO_EVENT_KEY_DOWN) {
         if (event->keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
             ctx->current_state = STATE_MENU;
@@ -95,7 +62,7 @@ void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType
             }
             break;
         case ALLEGRO_KEY_SPACE:
-            if (*func != FUNC_NONE) {
+            if (*func != FUNC_NONE && arrow->is_flying == false) {
                 arrow->pos_x = 0.0f;
                 arrow->pos_y = calculate_trajectory(*func, 0.0f, a->value, b->value, c->value);
                 arrow->is_flying = true;
@@ -123,13 +90,43 @@ void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType
     }
 }
 
-void playing_update(GameContext* ctx, Arrow* arrow, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite* player, float* sprite_timer, int* traj_result, float target_x, float target_y_min, float target_y_max, float obs_x, float obs_height, float obs_thickness) {
-    if (arrow->is_flying) {
+void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite* player, float* sprite_timer, int* traj_result, float target_x, float target_y_min, float target_y_max, float obs_x, float obs_height, float obs_thickness) {
+    
+    //ALÉM DE ATUALIZAR OS SPRITES, AGORA FAZ A VERIFICAÇÃO DA ANIMAÇÃO DE ATAQUE
+
+    if (arrow->is_flying && player->already_attack == false && player->state == DEFAULT) {
+        *sprite_timer = 0;
+        player->state = ATTACK;
+    }
+
+    if (player->state == DEFAULT) {
+        if (*sprite_timer >= FPS / 3) {
+            *sprite_timer = 0;
+            player->current_sprite = (player->current_sprite + 1) % 8;
+        }
+        (*sprite_timer)++;
+    }
+    else if (player->state == ATTACK) {
+        if (*sprite_timer >= FPS / 3) {
+            *sprite_timer = 0;
+
+            if ((player->current_sprite + 1) % 8 == 1) {
+                player->already_attack = true;
+                player->state = DEFAULT;
+            }
+            else
+                player->current_sprite = (player->current_sprite + 1) % 8;
+        }
+        (*sprite_timer)++;
+    }
+    
+    if (arrow->is_flying && player->already_attack) {
         arrow->pos_x += arrow->vel;
         arrow->pos_y = calculate_trajectory(func, arrow->pos_x, a.value, b.value, c.value);
 
         if (arrow->pos_x >= obs_x && arrow->pos_x <= obs_x + obs_thickness && arrow->pos_y <= obs_height) {
             arrow->is_flying = false;
+            player->already_attack = false;
             *traj_result = 2;
             printf("Colidiu com o obstaculo em X=%.2f, Y=%.2f\n", arrow->pos_x, arrow->pos_y);
         }
@@ -138,6 +135,7 @@ void playing_update(GameContext* ctx, Arrow* arrow, FunctionType func, FunctionP
             arrow->pos_x = target_x;
             arrow->pos_y = calculate_trajectory(func, arrow->pos_x, a.value, b.value, c.value);
             arrow->is_flying = false;
+            player->already_attack = false;
 
             if (arrow->pos_y >= target_y_min && arrow->pos_y <= target_y_max) {
                 *traj_result = 1;
@@ -146,28 +144,27 @@ void playing_update(GameContext* ctx, Arrow* arrow, FunctionType func, FunctionP
             }
             else {
                 *traj_result = 3;
+                lvl->current_lives--;
                 printf("ERROU O ALVO: Altura final Y=%.2f\n", arrow->pos_y);
             }
         }
 
         if (arrow->is_flying && arrow->pos_y < 0.0f && arrow->pos_x > 0.0f) {
             arrow->is_flying = false;
+            player->already_attack = false;
             arrow->pos_y = 0.0f;
             *traj_result = 3;
+            lvl->current_lives--;
             printf("Caiu no solo em X=%.2f\n", arrow->pos_x);
         }
 
         if (arrow->is_flying && arrow->pos_x > 20.0f) {
             arrow->is_flying = false;
+            player->already_attack = false;
+            lvl->current_lives--;
             *traj_result = 3;
         }
     }
-
-    if (*sprite_timer >= FPS / 3) {
-        *sprite_timer = 0;
-        player->current_sprite = (player->current_sprite + 1) % 8;
-    }
-    (*sprite_timer)++;
 }
 
 void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite player, Arrow arrow, Button soma, Button subtracao, int traj_result, float target_x, float target_y_min, float target_y_max, float obs_x, float obs_height, float obs_thickness) {
@@ -255,10 +252,13 @@ int main(void) {
     Button subtracao = { al_get_display_width(display) - 70, al_get_display_height(display) - 160, 50, 50, SUBTRACTION };
 
     GameContext game_context = { STATE_MENU, 0, true };
+    LevelState level_state = { LIVES, 0};
     FunctionType current_func = FUNC_NONE;
+
     FunctionParams a = { 0.0f, false, 10, -1 };
     FunctionParams b = { 0.0f, false, 10, -1 };
     FunctionParams c = { 0.0f, false, 10, -1 };
+
     float sprite_timer = 0.0f;
     Arrow arrow = { 0.0f, 0.0f, 0.05f, 25.0f, 50.0f, false };
     int traj_result = 0;
@@ -266,9 +266,11 @@ int main(void) {
     const float target_x = 4.0f;
     const float target_y_min = 0.0f;
     const float target_y_max = 8.0f;
+
     float obs_x = 2.0f;
     float obs_height = 3.0f;
     float obs_thickness = 0.3f;
+
     bool redraw = true;
 
     al_start_timer(timer);
@@ -288,6 +290,10 @@ int main(void) {
             break;
         case STATE_PLAYING:
             playing_process_events(&event, &game_context, &current_func, &a, &b, &c, &arrow, soma, subtracao, &traj_result);
+            verification_game_state(&game_context, &level_state);
+            break;
+        case STATE_GAME_OVER:
+            game_over_process_events(&event, &game_context, &level_state);
             break;
         default:
             break;
@@ -300,7 +306,9 @@ int main(void) {
             case STATE_MENU:
                 break;
             case STATE_PLAYING:
-                playing_update(&game_context, &arrow, current_func, a, b, c, &robin_ra, &sprite_timer, &traj_result, target_x, target_y_min, target_y_max, obs_x, obs_height, obs_thickness);
+                playing_update(&game_context, &level_state, &arrow, current_func, a, b, c, &robin_ra, &sprite_timer, &traj_result, target_x, target_y_min, target_y_max, obs_x, obs_height, obs_thickness);
+                break;
+            case STATE_GAME_OVER:
                 break;
             default:
                 break;
@@ -316,6 +324,9 @@ int main(void) {
                 break;
             case STATE_PLAYING:
                 playing_render(background, font, &game_context, current_func, a, b, c, robin_ra, arrow, soma, subtracao, traj_result, target_x, target_y_min, target_y_max, obs_x, obs_height, obs_thickness);
+                break;
+            case STATE_GAME_OVER:
+                game_over_render(font);
                 break;
             default:
                 break;

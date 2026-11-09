@@ -137,6 +137,7 @@
   <ItemGroup>
     <ClCompile Include="include\param_selector.h" />
     <ClCompile Include="src\game_config.c" />
+    <ClCompile Include="src\game_state.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\math_engine.c" />
     <ClCompile Include="src\param_selector.c" />
@@ -144,6 +145,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\game_config.h" />
+    <ClInclude Include="include\game_state.h" />
     <ClInclude Include="include\math_engine.h" />
     <ClInclude Include="include\sprites_maneger.h" />
   </ItemGroup>
