@@ -9,11 +9,11 @@
 #include "../include/game_config.h"
 #include "../include/math_engine.h"
 #include "../include/sprites_maneger.h"
-#include "../include/param_selector.h"
 #include "../include/game_state.h"
-#include "../hud.h"
+#include "../include/param_selector.h"
+#include "../include/hud.h"
 
-void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType* func, FunctionParams* a, FunctionParams* b, FunctionParams* c, Arrow* arrow,Button soma, Button subtracao, int* traj_result) {
+void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType* func, Arrow* arrow, Button soma, Button subtracao, int* traj_result, PlayerInput* player_input) {
     if (event->type == ALLEGRO_EVENT_KEY_DOWN) {
         if (event->keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
             ctx->current_state = STATE_MENU;
@@ -42,30 +42,24 @@ void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType
             arrow->is_flying = false;
             break;
         case ALLEGRO_KEY_A:
-            a->state = !a->state;
-            if (a->state) {
-                b->state = false;
-                c->state = false;
-            }
+            player_input->shoot_trigger = !player_input->shoot_trigger;
+            player_input->select_param = (player_input->shoot_trigger) ? 1 : 0;
+
             break;
         case ALLEGRO_KEY_B:
-            b->state = !b->state;
-            if (b->state) {
-                a->state = false;
-                c->state = false;
-            }
+            player_input->shoot_trigger = !player_input->shoot_trigger;
+            player_input->select_param = (player_input->shoot_trigger) ? 2 : 0;
+
             break;
         case ALLEGRO_KEY_C:
-            c->state = !c->state;
-            if (c->state) {
-                a->state = false;
-                b->state = false;
-            }
+            player_input->shoot_trigger = !player_input->shoot_trigger;
+            player_input->select_param = (player_input->shoot_trigger) ? 3 : 0;
+
             break;
         case ALLEGRO_KEY_SPACE:
             if (*func != FUNC_NONE && arrow->is_flying == false) {
                 arrow->pos_x = 0.0f;
-                arrow->pos_y = calculate_trajectory(*func, 0.0f, a->value, b->value, c->value);
+                arrow->pos_y = calculate_trajectory(*func, 0.0f, player_input->a.value, player_input->b.value, player_input->c.value);
                 arrow->is_flying = true;
                 *traj_result = 0;
             }
@@ -73,22 +67,26 @@ void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType
         }
     }
 
-    if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event->mouse.button == 1) {
-        float mouse_x = (float)event->mouse.x;
-        float mouse_y = (float)event->mouse.y;
+    /*
+        if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event->mouse.button == 1) {
+            float mouse_x = (float)event->mouse.x;
+            float mouse_y = (float)event->mouse.y;
 
-        if (mouse_verificator(soma, mouse_x, mouse_y)) {
-            if (a->state) param_operation(a, soma);
-            if (b->state) param_operation(b, soma);
-            if (c->state) param_operation(c, soma);
+            if (mouse_verificator(soma, mouse_x, mouse_y)) {
+                if (a->state) param_operation(a, soma);
+                if (b->state) param_operation(b, soma);
+                if (c->state) param_operation(c, soma);
+            }
+
+            if (mouse_verificator(subtracao, mouse_x, mouse_y)) {
+                if (a->state) param_operation(a, subtracao);
+                if (b->state) param_operation(b, subtracao);
+                if (c->state) param_operation(c, subtracao);
+            }
         }
 
-        if (mouse_verificator(subtracao, mouse_x, mouse_y)) {
-            if (a->state) param_operation(a, subtracao);
-            if (b->state) param_operation(b, subtracao);
-            if (c->state) param_operation(c, subtracao);
-        }
-    }
+      */
+    
 }
 
 void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite* player, float* sprite_timer, int* traj_result) {
@@ -143,7 +141,7 @@ void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType
     }
 }
 
-void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite player, Arrow arrow, Button soma, Button subtracao, int traj_result) {
+void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite player, Arrow arrow, Button soma, Button subtracao, int traj_result, PlayerInput* input, const char* title, LevelState state) {
     ALLEGRO_COLOR c_white = al_map_rgb(255, 255, 255);
     ALLEGRO_COLOR c_red = al_map_rgb(250, 50, 50);
     ALLEGRO_COLOR c_green = al_map_rgb(50, 220, 50);
@@ -176,7 +174,7 @@ void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, Fu
         al_draw_filled_circle(scale_to_screen_x(arrow.pos_x), scale_to_screen_y(arrow.pos_y), 4.0f, arrow_color);
     }
 
-    render_hud();
+    render_hud(title, input, font, state, func);
     //draw_player(player);
   
 }
@@ -201,7 +199,6 @@ int main(void) {
     al_register_event_source(event_queue, al_get_display_event_source(display));
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
 
-    ALLEGRO_BITMAP* background = al_load_bitmap("assets/backgrounds/background_treinamento.jpg");
     ALLEGRO_BITMAP* robin_sprite = al_load_bitmap("assets/sprites/robin_ra.png");
 
     PlayerSprite robin_ra = { robin_sprite, 50.0f, WORLD_BASE_Y - 60.0f, 100, 100, 0, DEFAULT };
@@ -216,6 +213,9 @@ int main(void) {
     FunctionParams a = { 0.0f, false, 10, -1 };
     FunctionParams b = { 0.0f, false, 10, -1 };
     FunctionParams c = { 0.0f, false, 10, -1 };
+
+    PlayerInput player_input = { current_func, a, b, c, 0, false};
+    const char* title = "FASE DE TREINAMENTO";
 
     float sprite_timer = 0.0f;
     Arrow arrow = { 0.0f, 0.0f, 0.05f, 25.0f, 50.0f, false };
@@ -247,7 +247,7 @@ int main(void) {
             menu_process_events(&event, &game_context);
             break;
         case STATE_PLAYING:
-            playing_process_events(&event, &game_context, &current_func, &a, &b, &c, &arrow, soma, subtracao, &traj_result);
+            playing_process_events(&event, &game_context, &current_func, &arrow, soma, subtracao, &traj_result, &player_input);
             verification_game_state(&game_context, &level_state);
             break;
         case STATE_GAME_OVER:
@@ -281,7 +281,7 @@ int main(void) {
                 menu_render(font);
                 break;
             case STATE_PLAYING:
-                playing_render(background, font, &game_context, current_func, a, b, c, robin_ra, arrow, soma, subtracao, traj_result);
+                playing_render(NULL, font, &game_context, current_func, a, b, c, robin_ra, arrow, soma, subtracao, traj_result, &player_input, title, level_state);
                 break;
             case STATE_GAME_OVER:
                 game_over_render(font);
@@ -294,7 +294,6 @@ int main(void) {
         }
     }
 
-    if (background) al_destroy_bitmap(background);
     if (robin_sprite) al_destroy_bitmap(robin_sprite);
     al_destroy_font(font);
     al_destroy_timer(timer);
