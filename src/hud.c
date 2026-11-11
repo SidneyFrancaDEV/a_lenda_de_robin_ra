@@ -5,7 +5,7 @@
 #include "game_state.h"
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
-	
+
 void render_hud(const char* title_level, PlayerInput* player_input, ALLEGRO_FONT* font, LevelState state, FunctionType function_type) {
 	// Implement the HUD rendering logic here
 	// This function should draw the HUD elements on the screen
@@ -54,9 +54,9 @@ void render_hud(const char* title_level, PlayerInput* player_input, ALLEGRO_FONT
 	ALLEGRO_COLOR color_c = (player_input->select_param == 3) ? c_green : c_white;
 
 
-	al_draw_textf(font, color_a, params_and_text_functions_x, panel_y + 60, ALLEGRO_ALIGN_LEFT,"A : %.1f", player_input->a);
-	al_draw_textf(font, color_b, params_and_text_functions_x, panel_y + 90, ALLEGRO_ALIGN_LEFT, "B : %.1f", player_input->b);
-	al_draw_textf(font, color_c, params_and_text_functions_x, panel_y + 120, ALLEGRO_ALIGN_LEFT, "C : %.1f", player_input->c);
+	al_draw_textf(font, color_a, params_and_text_functions_x, panel_y + 60, ALLEGRO_ALIGN_LEFT, "A : %.1f", player_input->a.value);
+	al_draw_textf(font, color_b, params_and_text_functions_x, panel_y + 90, ALLEGRO_ALIGN_LEFT, "B : %.1f", player_input->b.value);
+	al_draw_textf(font, color_c, params_and_text_functions_x, panel_y + 120, ALLEGRO_ALIGN_LEFT, "C : %.1f", player_input->c.value);
 
 	float rect_buttons_min_x = SCREEN_WIDTH - 150;
 	float rect_buttons_max_x = SCREEN_WIDTH - 30;
@@ -98,6 +98,8 @@ FunctionType verification_mouse_click_function_type(float mouse_x, float mouse_y
 		return FUNC_LOGARITHMIC;
 	if ((mouse_x > 470 && mouse_x < 550) && (mouse_y > height_min && mouse_y < height_max))
 		return FUNC_SINUSOIDAL;
+
+	return FUNC_NONE;
 }
 
 int verification_mouse_click_buttons(float mouse_x, float mouse_y) {
@@ -123,8 +125,10 @@ int verification_mouse_click_buttons(float mouse_x, float mouse_y) {
 	return 0;
 }
 
-void verificate_mouse_click_params(ALLEGRO_FONT* font, PlayerInput* player_input, float mouse_x, float mouse_y) {
+void verification_mouse_click_params(ALLEGRO_FONT* font, PlayerInput* player_input, float mouse_x, float mouse_y) {
 	const char* text_exemple = "A : 0.0";
+
+	float padding_y = 5.0f;
 
 	float text_width = al_get_text_width(font, text_exemple);
 	float text_height = al_get_font_line_height(font);
@@ -132,10 +136,23 @@ void verificate_mouse_click_params(ALLEGRO_FONT* font, PlayerInput* player_input
 	float params_and_text_functions_x = SCREEN_WIDTH / 1.7f;
 	int panel_y = SCREEN_HEIGHT - BOTTOM_PANEL_HEIGHT;
 
-	if ((mouse_x > params_and_text_functions_x && mouse_x < params_and_text_functions_x + text_width) && (mouse_y > panel_y + 60 && mouse_y < panel_y + 60 + text_height))
-		player_input->select_param = 1;
-	if ((mouse_x > params_and_text_functions_x && mouse_x < params_and_text_functions_x + text_width) && (mouse_y > panel_y + 90 && mouse_y < panel_y + 90 + text_height))
-		player_input->select_param = 2;
-	if ((mouse_x > params_and_text_functions_x && mouse_x < params_and_text_functions_x + text_width) && (mouse_y > panel_y + 120 && mouse_y < panel_y + 120 + text_height))
-		player_input->select_param = 3;
+	if ((mouse_x >= params_and_text_functions_x && mouse_x <= params_and_text_functions_x + text_width) &&
+		(mouse_y >= (panel_y + 60 - padding_y) && mouse_y <= (panel_y + 60 + text_height))) {
+		player_input->shoot_trigger = !player_input->shoot_trigger;
+		player_input->select_param = (player_input->shoot_trigger) ? 1 : 0;
+	}
+
+	if ((mouse_x >= params_and_text_functions_x && mouse_x <= params_and_text_functions_x + text_width) &&
+		(mouse_y >= (panel_y + 90 - padding_y) && mouse_y <= (panel_y + 90 + text_height))) {
+		player_input->shoot_trigger = !player_input->shoot_trigger;
+		player_input->select_param = (player_input->shoot_trigger) ? 2 : 0;
+	}
+
+	if ((mouse_x >= params_and_text_functions_x && mouse_x <= params_and_text_functions_x + text_width) &&
+		(mouse_y >= (panel_y + 120 - padding_y) && mouse_y <= (panel_y + 120 + text_height))) {
+		player_input->shoot_trigger = !player_input->shoot_trigger;
+		player_input->select_param = (player_input->shoot_trigger) ? 3 : 0;
+	}
+
+	return 0;
 }
