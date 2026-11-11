@@ -6,13 +6,14 @@
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 
-void render_hud(const char* title_level, PlayerInput* player_input, ALLEGRO_FONT* font, LevelState state, FunctionType function_type) {
+void render_hud(const char* title_level, PlayerInput* player_input, ALLEGRO_FONT* font, LevelState state, FunctionType function_type, FunctionType required_function) {
 	// Implement the HUD rendering logic here
 	// This function should draw the HUD elements on the screen
 
 	ALLEGRO_COLOR c_black = al_map_rgb(0, 0, 0);
 	ALLEGRO_COLOR c_white = al_map_rgb(255, 255, 255);
 	ALLEGRO_COLOR c_green = al_map_rgb(0, 255, 0);
+	ALLEGRO_COLOR c_disabled = al_map_rgb(110, 110, 110);
 
 	//TOP_PANEL
 	al_draw_filled_rectangle(0, 0, SCREEN_WIDTH, TOP_PANEL_HEIGHT, c_black);
@@ -72,16 +73,43 @@ void render_hud(const char* title_level, PlayerInput* player_input, ALLEGRO_FONT
 	float rect_functions_max_y = panel_y + 120;
 	float letter_functions_y = panel_y + 20;
 
-	al_draw_text(font, c_white, 70, letter_functions_y, ALLEGRO_ALIGN_CENTER, "LINEAR");
-	al_draw_filled_rectangle(30, rect_functions_min_y, 110, rect_functions_max_y, c_white);
-	al_draw_text(font, c_white, 180, letter_functions_y, ALLEGRO_ALIGN_CENTER, "QUADRATIC");
-	al_draw_filled_rectangle(140, rect_functions_min_y, 220, rect_functions_max_y, c_white);
-	al_draw_text(font, c_white, 290, letter_functions_y, ALLEGRO_ALIGN_CENTER, "EXPONENTIAL");
-	al_draw_filled_rectangle(250, rect_functions_min_y, 330, rect_functions_max_y, c_white);
-	al_draw_text(font, c_white, 400, letter_functions_y, ALLEGRO_ALIGN_CENTER, "LOGARITHMIC");
-	al_draw_filled_rectangle(360, rect_functions_min_y, 440, rect_functions_max_y, c_white);
-	al_draw_text(font, c_white, 510, letter_functions_y, ALLEGRO_ALIGN_CENTER, "SINUSOIDAL");
-	al_draw_filled_rectangle(470, rect_functions_min_y, 550, rect_functions_max_y, c_white);
+	ALLEGRO_COLOR color_linear = (required_function == FUNC_NONE || required_function == FUNC_LINEAR) ? c_white : c_disabled;
+	al_draw_text(font, color_linear, 70, letter_functions_y, ALLEGRO_ALIGN_CENTER, "LINEAR");
+	al_draw_filled_rectangle(30, rect_functions_min_y, 110, rect_functions_max_y, color_linear);
+	ALLEGRO_COLOR color_quadratic = (required_function == FUNC_NONE || required_function == FUNC_QUADRATIC) ? c_white : c_disabled;
+	al_draw_text(font, color_quadratic, 180, letter_functions_y, ALLEGRO_ALIGN_CENTER, "QUADRATIC");
+	al_draw_filled_rectangle(140, rect_functions_min_y, 220, rect_functions_max_y, color_quadratic);
+	ALLEGRO_COLOR color_exponential = (required_function == FUNC_NONE || required_function == FUNC_EXPONENTIAL) ? c_white : c_disabled;
+	al_draw_text(font, color_exponential, 290, letter_functions_y, ALLEGRO_ALIGN_CENTER, "EXPONENTIAL");
+	al_draw_filled_rectangle(250, rect_functions_min_y, 330, rect_functions_max_y, color_exponential);
+	ALLEGRO_COLOR color_logarithmic = (required_function == FUNC_NONE || required_function == FUNC_LOGARITHMIC) ? c_white : c_disabled;
+	al_draw_text(font, color_logarithmic, 400, letter_functions_y, ALLEGRO_ALIGN_CENTER, "LOGARITHMIC");
+	al_draw_filled_rectangle(360, rect_functions_min_y, 440, rect_functions_max_y, color_logarithmic);
+	ALLEGRO_COLOR color_sinusoidal = (required_function == FUNC_NONE || required_function == FUNC_SINUSOIDAL) ? c_white : c_disabled;
+	al_draw_text(font, color_sinusoidal, 510, letter_functions_y, ALLEGRO_ALIGN_CENTER, "SINUSOIDAL");
+	al_draw_filled_rectangle(470, rect_functions_min_y, 550, rect_functions_max_y, color_sinusoidal);
+}
+
+void render_axes(ALLEGRO_FONT* font) {
+	ALLEGRO_COLOR c_white = al_map_rgb(255, 255, 255);
+
+	al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(WORLD_MAX), scale_to_screen_y(0), c_white, 2.0f);
+	al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(0), scale_to_screen_y(WORLD_MAX), c_white, 2.0f);
+
+	for (int i = 1; i <= WORLD_MAX; i++) {
+		float sx = scale_to_screen_x((float)i);
+		al_draw_line(sx, scale_to_screen_y(0) - 4, sx, scale_to_screen_y(0) + 4, c_white, 1.5f);
+		al_draw_textf(font, c_white, sx, scale_to_screen_y(0) - 15, ALLEGRO_ALIGN_RIGHT, "%d", i);
+	}
+
+	for (int j = 1; j <= WORLD_MAX; j++) {
+		float sy = scale_to_screen_y((float)j);
+		al_draw_line(scale_to_screen_x(0) - 4, sy, scale_to_screen_x(0) + 4, sy, c_white, 1.5f);
+		al_draw_textf(font, c_white, scale_to_screen_x(0) - 8, sy, ALLEGRO_ALIGN_RIGHT, "%d", j);
+	}
+	al_draw_text(font, c_white, scale_to_screen_x(0) + 6, scale_to_screen_y(0) - 15, ALLEGRO_ALIGN_LEFT, "0");
+	al_draw_text(font, c_white, scale_to_screen_x(WORLD_MAX), scale_to_screen_y(0) - 28, ALLEGRO_ALIGN_RIGHT, "X");
+	al_draw_text(font, c_white, scale_to_screen_x(0) + 8, scale_to_screen_y(WORLD_MAX), ALLEGRO_ALIGN_LEFT, "Y");
 }
 
 FunctionType verification_mouse_click_function_type(float mouse_x, float mouse_y) {
@@ -138,21 +166,16 @@ void verification_mouse_click_params(ALLEGRO_FONT* font, PlayerInput* player_inp
 
 	if ((mouse_x >= params_and_text_functions_x && mouse_x <= params_and_text_functions_x + text_width) &&
 		(mouse_y >= (panel_y + 60 - padding_y) && mouse_y <= (panel_y + 60 + text_height))) {
-		player_input->shoot_trigger = !player_input->shoot_trigger;
-		player_input->select_param = (player_input->shoot_trigger) ? 1 : 0;
+		player_input->select_param = (player_input->select_param == 1) ? 0 : 1;
 	}
 
 	if ((mouse_x >= params_and_text_functions_x && mouse_x <= params_and_text_functions_x + text_width) &&
 		(mouse_y >= (panel_y + 90 - padding_y) && mouse_y <= (panel_y + 90 + text_height))) {
-		player_input->shoot_trigger = !player_input->shoot_trigger;
-		player_input->select_param = (player_input->shoot_trigger) ? 2 : 0;
+		player_input->select_param = (player_input->select_param == 2) ? 0 : 2;
 	}
 
 	if ((mouse_x >= params_and_text_functions_x && mouse_x <= params_and_text_functions_x + text_width) &&
 		(mouse_y >= (panel_y + 120 - padding_y) && mouse_y <= (panel_y + 120 + text_height))) {
-		player_input->shoot_trigger = !player_input->shoot_trigger;
-		player_input->select_param = (player_input->shoot_trigger) ? 3 : 0;
+		player_input->select_param = (player_input->select_param == 3) ? 0 : 3;
 	}
-
-	return 0;
 }

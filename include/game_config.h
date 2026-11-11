@@ -9,9 +9,10 @@
 #define SCREEN_HEIGHT 768
 #define FPS           60
 
-#define WORLD_SCALE   30.0f
-#define WORLD_BASE_X  50.0f
-#define WORLD_BASE_Y  (SCREEN_HEIGHT - BOTTOM_PANEL_HEIGHT)
+#define WORLD_MAX     10
+#define WORLD_BASE_X  115.0f
+#define GRAPH_GAP 5.0f
+#define WORLD_BASE_Y  (SCREEN_HEIGHT - BOTTOM_PANEL_HEIGHT - GRAPH_GAP)
 
 // Conversão de unidades matemática para pixels da tela
 float scale_to_screen_x(float math_x);

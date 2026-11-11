@@ -1,5 +1,6 @@
 ﻿#include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
@@ -12,124 +13,85 @@
 #include "../include/game_state.h"
 #include "../include/param_selector.h"
 #include "../include/hud.h"
+#include "../include/level_manager.h"
 
-void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType* func, Arrow* arrow, Button soma, Button subtracao, int* traj_result, PlayerInput* player_input, ALLEGRO_FONT* font) {
+static void shoot(Arrow* arrow, const PlayerInput* input, ShotResult* shot_result) {
+    if (input->function_type == FUNC_NONE)
+        return;
+
+    arrow->pos_x = 0.0f;
+    arrow->pos_y = calculate_trajectory(input->function_type, 0.0f, input->a.value, input->b.value, input->c.value);
+    arrow->is_flying = true;
+    *shot_result = SHOT_IN_FLIGHT;
+}
+
+static void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, const LevelDefinition* level, Arrow* arrow, ShotResult* shot_result, PlayerInput* player_input, ALLEGRO_FONT* font) {
+    if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
+        ctx->current_state = STATE_MENU;
+        return;
+    }
+
+    if (arrow->is_flying)
+        return;
+
     if (event->type == ALLEGRO_EVENT_KEY_DOWN) {
-        if (event->keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
-            ctx->current_state = STATE_MENU;
-            return;
-        }
-
         switch (event->keyboard.keycode) {
         case ALLEGRO_KEY_1:
-            *func = FUNC_LINEAR;
-            arrow->is_flying = false;
-            break;
         case ALLEGRO_KEY_2:
-            *func = FUNC_QUADRATIC;
-            arrow->is_flying = false;
-            break;
         case ALLEGRO_KEY_3:
-            *func = FUNC_EXPONENTIAL;
-            arrow->is_flying = false;
-            break;
         case ALLEGRO_KEY_4:
-            *func = FUNC_LOGARITHMIC;
-            arrow->is_flying = false;
-            break;
         case ALLEGRO_KEY_5:
-            *func = FUNC_SINUSOIDAL;
-            arrow->is_flying = false;
+            if (level->function_type == FUNC_NONE)
+                player_input->function_type = (FunctionType)(FUNC_LINEAR + event->keyboard.keycode - ALLEGRO_KEY_1);
             break;
         case ALLEGRO_KEY_A:
-            player_input->shoot_trigger = !player_input->shoot_trigger;
-            player_input->select_param = (player_input->shoot_trigger) ? 1 : 0;
+            player_input->select_param = (player_input->select_param == 1) ? 0 : 1;
             break;
         case ALLEGRO_KEY_B:
-            player_input->shoot_trigger = !player_input->shoot_trigger;
-            player_input->select_param = (player_input->shoot_trigger) ? 2 : 0;
+            player_input->select_param = (player_input->select_param == 2) ? 0 : 2;
             break;
         case ALLEGRO_KEY_C:
-            player_input->shoot_trigger = !player_input->shoot_trigger;
-            player_input->select_param = (player_input->shoot_trigger) ? 3 : 0;
+            player_input->select_param = (player_input->select_param == 3) ? 0 : 3;
             break;
         case ALLEGRO_KEY_SPACE:
-            if (*func != FUNC_NONE && arrow->is_flying == false) {
-                arrow->pos_x = 0.0f;
-                arrow->pos_y = calculate_trajectory(*func, 0.0f, player_input->a.value, player_input->b.value, player_input->c.value);
-                arrow->is_flying = true;
-                *traj_result = 0;
-            }
+            shoot(arrow, player_input, shot_result);
             break;
-        }
-    } 
-
-    float mouse_x = event->mouse.x;
-    float mouse_y = event->mouse.y;
-
-    if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN) {
-        if (event->mouse.button == 1) {
-
-            switch (verification_mouse_click_function_type(mouse_x, mouse_y)) {
-            case FUNC_LINEAR:
-                *func = FUNC_LINEAR;
-                arrow->is_flying = false;
-                break;
-            case FUNC_QUADRATIC:
-                *func = FUNC_QUADRATIC;
-                arrow->is_flying = false;
-                break;
-            case FUNC_EXPONENTIAL:
-                *func = FUNC_EXPONENTIAL;
-                arrow->is_flying = false;
-                break;
-            case FUNC_LOGARITHMIC:
-                *func = FUNC_LOGARITHMIC;
-                arrow->is_flying = false;
-                break;
-            case FUNC_SINUSOIDAL:
-                *func = FUNC_SINUSOIDAL;
-                arrow->is_flying = false;
-                break;
-            case FUNC_NONE:
-                break;
-            }
-
-            verification_mouse_click_params(font, player_input, mouse_x, mouse_y);
-
-
-            switch (verification_mouse_click_buttons(mouse_x, mouse_y)) {
-            case 1:
-                if (player_input->select_param == 1)
-                    player_input->a.value += 1;
-                if (player_input->select_param == 2)
-                    player_input->b.value += 2;
-                if (player_input->select_param == 3)
-                    player_input->c.value += 3;
-                break;
-            case 2:
-                if (player_input->select_param == 1)
-                    player_input->a.value -= 1;
-                if (player_input->select_param == 2)
-                    player_input->b.value -= 2;
-                if (player_input->select_param == 3)
-                    player_input->c.value -= 3;
-                break;
-            case 3:
-                if (*func != FUNC_NONE && arrow->is_flying == false) {
-                    arrow->pos_x = 0.0f;
-                    arrow->pos_y = calculate_trajectory(*func, 0.0f, player_input->a.value, player_input->b.value, player_input->c.value);
-                    arrow->is_flying = true;
-                    *traj_result = 0;
-                }
-                break;
-            }
         }
     }
 
+    if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event->mouse.button == 1) {
+        float mouse_x = (float)event->mouse.x;
+        float mouse_y = (float)event->mouse.y;
+
+        if (level->function_type == FUNC_NONE) {
+            FunctionType selected = verification_mouse_click_function_type(mouse_x, mouse_y);
+            if (selected != FUNC_NONE)
+                player_input->function_type = selected;
+        }
+
+        verification_mouse_click_params(font, player_input, mouse_x, mouse_y);
+
+        int button = verification_mouse_click_buttons(mouse_x, mouse_y);
+        switch (button) {
+        case 1:
+        case 2: {
+            float step_in_tenths = (button == 1) ? 1.0f : -1.0f;
+            if (player_input->select_param == 1)
+                player_input->a.value = roundf(player_input->a.value * 10.0f + step_in_tenths) / 10.0f;
+            if (player_input->select_param == 2)
+                player_input->b.value = roundf(player_input->b.value * 10.0f + step_in_tenths) / 10.0f;
+            if (player_input->select_param == 3)
+                player_input->c.value = roundf(player_input->c.value * 10.0f + step_in_tenths) / 10.0f;
+            break;
+        }
+        case 3:
+            shoot(arrow, player_input, shot_result);
+            break;
+        }
+    }
 }
 
-void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType func, PlayerInput* player_input, PlayerSprite* player, float* sprite_timer, int* traj_result) {
+static void playing_update(GameContext* ctx, LevelState* state, const LevelDefinition* level, Arrow* arrow, const PlayerInput* input, PlayerSprite* player, float* sprite_timer, ShotResult* shot_result) {
     
     //ALÉM DE ATUALIZAR OS SPRITES, AGORA FAZ A VERIFICAÇÃO DA ANIMAÇÃO DE ATAQUE
 
@@ -160,64 +122,86 @@ void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType
     }
     
     if (arrow->is_flying && player->already_attack) {
-        arrow->pos_x += arrow->vel;
-        arrow->pos_y = calculate_trajectory(func, arrow->pos_x, player_input->a.value, player_input->b.value, player_input->c.value);
-
-        if (arrow->is_flying && arrow->pos_y < 0.0f && arrow->pos_x > 0.0f) {
-            arrow->is_flying = false;
-            player->already_attack = false;
-            arrow->pos_y = 0.0f;
-            *traj_result = 3;
-            lvl->current_lives--;
-            printf("Caiu no solo em X=%.2f\n", arrow->pos_x);
+        *shot_result = level_check_shot(level, arrow->pos_x, arrow->pos_y);
+        if (*shot_result == SHOT_IN_FLIGHT) {
+            arrow->pos_x += arrow->vel;
+            arrow->pos_y = calculate_trajectory(input->function_type, arrow->pos_x, input->a.value, input->b.value, input->c.value);
         }
-
-        if (arrow->is_flying && arrow->pos_x > 20.0f) {
+        else {
             arrow->is_flying = false;
             player->already_attack = false;
-            lvl->current_lives--;
-            *traj_result = 3;
+
+            if (*shot_result == SHOT_HIT_TARGET) {
+                state->current_score++;
+                ctx->current_state = STATE_LEVEL_COMPLETE;
+            }
+            else {
+                state->current_lives--;
+                verification_game_state(ctx, state);
+            }
         }
     }
 }
 
-void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite player, Arrow arrow, Button soma, Button subtracao, int traj_result, PlayerInput* input, const char* title, LevelState state) {
+static void draw_box(CollisionArea area, ALLEGRO_COLOR color) {
+    al_draw_filled_rectangle(scale_to_screen_x(area.x_min), scale_to_screen_y(area.y_max),
+        scale_to_screen_x(area.x_max), scale_to_screen_y(area.y_min), color);
+}
+
+static void playing_render(ALLEGRO_FONT* font, const LevelDefinition* level, PlayerSprite player, Arrow arrow, ShotResult shot_result, PlayerInput* input, LevelState state) {
     ALLEGRO_COLOR c_white = al_map_rgb(255, 255, 255);
-    ALLEGRO_COLOR c_red = al_map_rgb(250, 50, 50);
+    ALLEGRO_COLOR c_red = al_map_rgb(250, 75, 75);
     ALLEGRO_COLOR c_green = al_map_rgb(50, 220, 50);
-    ALLEGRO_COLOR c_yellow = al_map_rgb(240, 200, 20);
-    ALLEGRO_COLOR c_black = al_map_rgb(0, 0, 0);
 
-    al_clear_to_color(al_map_rgb(15, 15, 20));
+    al_clear_to_color(al_map_rgb(27, 63, 37));
+    for (int i = 0; i < level->obstacle_count; i++)
+        draw_box(level->obstacles[i], al_map_rgb(105, 105, 105));
 
-    if (bg) {
-        al_draw_bitmap(bg, 0, 0, 0);
-    }
+    draw_box(level->target, al_map_rgb(240, 200, 20));
+    draw_player(player);
 
-    al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(20), scale_to_screen_y(0), c_white, 2.0f);
-    al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(0), scale_to_screen_y(15), c_white, 2.0f);
-
-    for (int i = 1; i <= 20; i++) {
-        float sx = scale_to_screen_x((float)i);
-        al_draw_line(sx, scale_to_screen_y(0) - 4, sx, scale_to_screen_y(0) + 4, c_white, 1.5f);
-    }
-
-    for (int j = 1; j <= 15; j++) {
-        float sy = scale_to_screen_y((float)j);
-        al_draw_line(scale_to_screen_x(0) - 4, sy, scale_to_screen_x(0) + 4, sy, c_white, 1.5f);
-    }
+    render_axes(font);
 
     ALLEGRO_COLOR arrow_color = c_white;
-    if (traj_result == 1) arrow_color = c_green;
-    else if (traj_result == 2 || traj_result == 3) arrow_color = c_red;
+    if (shot_result == SHOT_HIT_TARGET)
+        arrow_color = c_green;
+    else if (shot_result != SHOT_IN_FLIGHT)
+        arrow_color = c_red;
 
-    if (arrow.is_flying || arrow.pos_x > 0.0f) {
+    if ((arrow.is_flying || shot_result != SHOT_IN_FLIGHT) &&
+        arrow.pos_x <= WORLD_MAX && arrow.pos_y >= 0.0f && arrow.pos_y <= WORLD_MAX) {
         al_draw_filled_circle(scale_to_screen_x(arrow.pos_x), scale_to_screen_y(arrow.pos_y), 4.0f, arrow_color);
     }
 
-    render_hud(title, input, font, state, func);
-    //draw_player(player);
-  
+    al_draw_text(font, c_white, SCREEN_WIDTH / 2, TOP_PANEL_HEIGHT + 10, ALLEGRO_ALIGN_CENTER, level->objective);
+    if (shot_result == SHOT_HIT_TARGET)
+        al_draw_text(font, c_green, SCREEN_WIDTH / 2, TOP_PANEL_HEIGHT + 28, ALLEGRO_ALIGN_CENTER, "Alvo acertado! [ENTER] Continuar");
+    else if (shot_result == SHOT_HIT_OBSTACLE)
+        al_draw_text(font, c_red, SCREEN_WIDTH / 2, TOP_PANEL_HEIGHT + 28, ALLEGRO_ALIGN_CENTER, "A flecha bateu no obstaculo.");
+    else if (shot_result == SHOT_MISSED)
+        al_draw_text(font, c_red, SCREEN_WIDTH / 2, TOP_PANEL_HEIGHT + 28, ALLEGRO_ALIGN_CENTER, "A flecha saiu do campo sem acertar.");
+    else if (arrow.is_flying && arrow.pos_x == 0.0f)
+        al_draw_text(font, c_white, SCREEN_WIDTH / 2, TOP_PANEL_HEIGHT + 28, ALLEGRO_ALIGN_CENTER, "Preparando disparo...");
+
+    render_hud(level->title, input, font, state, input->function_type, level->function_type);
+}
+
+static void start_level(const LevelDefinition* level, LevelState* state, PlayerInput* input, Arrow* arrow, PlayerSprite* player, float* sprite_timer, ShotResult* shot_result) {
+    FunctionParams a = { level->initial_a, false, 10, -1 };
+    FunctionParams b = { level->initial_b, false, 10, -1 };
+    FunctionParams c = { level->initial_c, false, 10, -1 };
+    PlayerInput initial_input = { level->function_type, a, b, c, 0 };
+
+    *input = initial_input;
+    state->current_lives = LIVES;
+    arrow->pos_x = 0.0f;
+    arrow->pos_y = 0.0f;
+    arrow->is_flying = false;
+    player->already_attack = false;
+    player->current_sprite = 0;
+    player->state = DEFAULT;
+    *sprite_timer = 0.0f;
+    *shot_result = SHOT_IN_FLIGHT;
 }
 
 int main(void) {
@@ -242,33 +226,16 @@ int main(void) {
 
     ALLEGRO_BITMAP* robin_sprite = al_load_bitmap("assets/sprites/robin_ra.png");
 
-    PlayerSprite robin_ra = { robin_sprite, 50.0f, WORLD_BASE_Y - 60.0f, 100, 100, 0, DEFAULT };
-
-    Button soma = { al_get_display_width(display) - 70, al_get_display_height(display) - 70, 50, 50, ADDITION };
-    Button subtracao = { al_get_display_width(display) - 70, al_get_display_height(display) - 160, 50, 50, SUBTRACTION };
+    PlayerSprite robin_ra = { robin_sprite, WORLD_BASE_X - 92.0f, WORLD_BASE_Y - 86.0f, 86, 100, false, 0, DEFAULT };
 
     GameContext game_context = { STATE_MENU, 0, true };
-    LevelState level_state = { LIVES, 0};
-    FunctionType current_func = FUNC_NONE;
-
-    FunctionParams a = { 0.0f, false, 10, -1 };
-    FunctionParams b = { 0.0f, false, 10, -1 };
-    FunctionParams c = { 0.0f, false, 10, -1 };
-
-    PlayerInput player_input = { current_func, a, b, c, 0, false};
-    const char* title = "FASE DE TREINAMENTO";
+    int current_level = 0;
+    LevelState level_state = { LIVES, 0 };
+    PlayerInput player_input = { 0 };
 
     float sprite_timer = 0.0f;
     Arrow arrow = { 0.0f, 0.0f, 0.05f, 25.0f, 50.0f, false };
-    int traj_result = 0;
-
-    const float target_x = 4.0f;
-    const float target_y_min = 0.0f;
-    const float target_y_max = 8.0f;
-
-    float obs_x = 2.0f;
-    float obs_height = 3.0f;
-    float obs_thickness = 0.3f;
+    ShotResult shot_result = SHOT_IN_FLIGHT;
 
     bool redraw = true;
 
@@ -283,13 +250,34 @@ int main(void) {
             break;
         }
 
-        switch (game_context.current_state) {
+        GameState previous_state = game_context.current_state;
+        switch (previous_state) {
         case STATE_MENU:
             menu_process_events(&event, &game_context);
             break;
+        case STATE_GAME_WIN:
+            if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
+                if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+                    game_context.current_state = STATE_MENU;
+                else if (event.keyboard.keycode == ALLEGRO_KEY_ENTER)
+                    game_context.current_state = STATE_PLAYING;
+            }
+            break;
         case STATE_PLAYING:
-            playing_process_events(&event, &game_context, &current_func, &arrow, soma, subtracao, &traj_result, &player_input, font);
-            verification_game_state(&game_context, &level_state);
+            playing_process_events(&event, &game_context, &levels[current_level], &arrow, &shot_result, &player_input, font);
+            break;
+        case STATE_LEVEL_COMPLETE:
+            if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
+                if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+                    game_context.current_state = STATE_MENU;
+                else if (event.keyboard.keycode == ALLEGRO_KEY_ENTER) {
+                    current_level++;
+                    if (current_level < level_count)
+                        game_context.current_state = STATE_PLAYING;
+                    else
+                        game_context.current_state = STATE_GAME_WIN;
+                }
+            }
             break;
         case STATE_GAME_OVER:
             game_over_process_events(&event, &game_context, &level_state);
@@ -298,20 +286,21 @@ int main(void) {
             break;
         }
 
+        if (previous_state != game_context.current_state) {
+            redraw = true;
+            if (game_context.current_state == STATE_PLAYING) {
+                if (previous_state == STATE_MENU || previous_state == STATE_GAME_WIN) {
+                    current_level = 0;
+                    level_state.current_score = 0;
+                }
+                start_level(&levels[current_level], &level_state, &player_input, &arrow, &robin_ra, &sprite_timer, &shot_result);
+            }
+        }
+
         if (event.type == ALLEGRO_EVENT_TIMER) {
             redraw = true;
-
-            switch (game_context.current_state) {
-            case STATE_MENU:
-                break;
-            case STATE_PLAYING:
-                playing_update(&game_context, &level_state, &arrow, current_func, &player_input, &robin_ra, &sprite_timer, &traj_result);
-                break;
-            case STATE_GAME_OVER:
-                break;
-            default:
-                break;
-            }
+            if (game_context.current_state == STATE_PLAYING)
+                playing_update(&game_context, &level_state, &levels[current_level], &arrow, &player_input, &robin_ra, &sprite_timer, &shot_result);
         }
 
         if (redraw && al_is_event_queue_empty(event_queue)) {
@@ -322,7 +311,11 @@ int main(void) {
                 menu_render(font);
                 break;
             case STATE_PLAYING:
-                playing_render(NULL, font, &game_context, current_func, a, b, c, robin_ra, arrow, soma, subtracao, traj_result, &player_input, title, level_state);
+            case STATE_LEVEL_COMPLETE:
+                playing_render(font, &levels[current_level], robin_ra, arrow, shot_result, &player_input, level_state);
+                break;
+            case STATE_GAME_WIN:
+                game_win_render(font, level_state.current_score);
                 break;
             case STATE_GAME_OVER:
                 game_over_render(font);
