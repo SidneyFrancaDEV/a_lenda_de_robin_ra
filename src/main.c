@@ -13,7 +13,7 @@
 #include "../include/param_selector.h"
 #include "../include/hud.h"
 
-void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType* func, Arrow* arrow, Button soma, Button subtracao, int* traj_result, PlayerInput* player_input) {
+void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType* func, Arrow* arrow, Button soma, Button subtracao, int* traj_result, PlayerInput* player_input, ALLEGRO_FONT* font) {
     if (event->type == ALLEGRO_EVENT_KEY_DOWN) {
         if (event->keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
             ctx->current_state = STATE_MENU;
@@ -44,17 +44,14 @@ void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType
         case ALLEGRO_KEY_A:
             player_input->shoot_trigger = !player_input->shoot_trigger;
             player_input->select_param = (player_input->shoot_trigger) ? 1 : 0;
-
             break;
         case ALLEGRO_KEY_B:
             player_input->shoot_trigger = !player_input->shoot_trigger;
             player_input->select_param = (player_input->shoot_trigger) ? 2 : 0;
-
             break;
         case ALLEGRO_KEY_C:
             player_input->shoot_trigger = !player_input->shoot_trigger;
             player_input->select_param = (player_input->shoot_trigger) ? 3 : 0;
-
             break;
         case ALLEGRO_KEY_SPACE:
             if (*func != FUNC_NONE && arrow->is_flying == false) {
@@ -65,31 +62,74 @@ void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, FunctionType
             }
             break;
         }
-    }
+    } 
 
-    /*
-        if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event->mouse.button == 1) {
-            float mouse_x = (float)event->mouse.x;
-            float mouse_y = (float)event->mouse.y;
+    float mouse_x = event->mouse.x;
+    float mouse_y = event->mouse.y;
 
-            if (mouse_verificator(soma, mouse_x, mouse_y)) {
-                if (a->state) param_operation(a, soma);
-                if (b->state) param_operation(b, soma);
-                if (c->state) param_operation(c, soma);
+    if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN) {
+        if (event->mouse.button == 1) {
+
+            switch (verification_mouse_click_function_type(mouse_x, mouse_y)) {
+            case FUNC_LINEAR:
+                *func = FUNC_LINEAR;
+                arrow->is_flying = false;
+                break;
+            case FUNC_QUADRATIC:
+                *func = FUNC_QUADRATIC;
+                arrow->is_flying = false;
+                break;
+            case FUNC_EXPONENTIAL:
+                *func = FUNC_EXPONENTIAL;
+                arrow->is_flying = false;
+                break;
+            case FUNC_LOGARITHMIC:
+                *func = FUNC_LOGARITHMIC;
+                arrow->is_flying = false;
+                break;
+            case FUNC_SINUSOIDAL:
+                *func = FUNC_SINUSOIDAL;
+                arrow->is_flying = false;
+                break;
+            case FUNC_NONE:
+                break;
             }
 
-            if (mouse_verificator(subtracao, mouse_x, mouse_y)) {
-                if (a->state) param_operation(a, subtracao);
-                if (b->state) param_operation(b, subtracao);
-                if (c->state) param_operation(c, subtracao);
+            verification_mouse_click_params(font, player_input, mouse_x, mouse_y);
+
+
+            switch (verification_mouse_click_buttons(mouse_x, mouse_y)) {
+            case 1:
+                if (player_input->select_param == 1)
+                    player_input->a.value += 1;
+                if (player_input->select_param == 2)
+                    player_input->b.value += 2;
+                if (player_input->select_param == 3)
+                    player_input->c.value += 3;
+                break;
+            case 2:
+                if (player_input->select_param == 1)
+                    player_input->a.value -= 1;
+                if (player_input->select_param == 2)
+                    player_input->b.value -= 2;
+                if (player_input->select_param == 3)
+                    player_input->c.value -= 3;
+                break;
+            case 3:
+                if (*func != FUNC_NONE && arrow->is_flying == false) {
+                    arrow->pos_x = 0.0f;
+                    arrow->pos_y = calculate_trajectory(*func, 0.0f, player_input->a.value, player_input->b.value, player_input->c.value);
+                    arrow->is_flying = true;
+                    *traj_result = 0;
+                }
+                break;
             }
         }
+    }
 
-      */
-    
 }
 
-void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType func, FunctionParams a, FunctionParams b, FunctionParams c, PlayerSprite* player, float* sprite_timer, int* traj_result) {
+void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType func, PlayerInput* player_input, PlayerSprite* player, float* sprite_timer, int* traj_result) {
     
     //ALÉM DE ATUALIZAR OS SPRITES, AGORA FAZ A VERIFICAÇÃO DA ANIMAÇÃO DE ATAQUE
 
@@ -121,7 +161,7 @@ void playing_update(GameContext* ctx,LevelState* lvl, Arrow* arrow, FunctionType
     
     if (arrow->is_flying && player->already_attack) {
         arrow->pos_x += arrow->vel;
-        arrow->pos_y = calculate_trajectory(func, arrow->pos_x, a.value, b.value, c.value);
+        arrow->pos_y = calculate_trajectory(func, arrow->pos_x, player_input->a.value, player_input->b.value, player_input->c.value);
 
         if (arrow->is_flying && arrow->pos_y < 0.0f && arrow->pos_x > 0.0f) {
             arrow->is_flying = false;
@@ -153,6 +193,7 @@ void playing_render(ALLEGRO_BITMAP* bg, ALLEGRO_FONT* font, GameContext* ctx, Fu
     if (bg) {
         al_draw_bitmap(bg, 0, 0, 0);
     }
+
     al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(20), scale_to_screen_y(0), c_white, 2.0f);
     al_draw_line(scale_to_screen_x(0), scale_to_screen_y(0), scale_to_screen_x(0), scale_to_screen_y(15), c_white, 2.0f);
 
@@ -247,7 +288,7 @@ int main(void) {
             menu_process_events(&event, &game_context);
             break;
         case STATE_PLAYING:
-            playing_process_events(&event, &game_context, &current_func, &arrow, soma, subtracao, &traj_result, &player_input);
+            playing_process_events(&event, &game_context, &current_func, &arrow, soma, subtracao, &traj_result, &player_input, font);
             verification_game_state(&game_context, &level_state);
             break;
         case STATE_GAME_OVER:
@@ -264,7 +305,7 @@ int main(void) {
             case STATE_MENU:
                 break;
             case STATE_PLAYING:
-                playing_update(&game_context, &level_state, &arrow, current_func, a, b, c, &robin_ra, &sprite_timer, &traj_result);
+                playing_update(&game_context, &level_state, &arrow, current_func, &player_input, &robin_ra, &sprite_timer, &traj_result);
                 break;
             case STATE_GAME_OVER:
                 break;
