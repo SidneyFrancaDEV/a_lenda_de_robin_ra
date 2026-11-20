@@ -17,11 +17,10 @@ typedef struct {
 	FunctionParams a, b, c;
 
 	int select_param; // 1 = a, 2 = b, 3 = c
-
-	bool shoot_trigger;
 } PlayerInput;
 
-void render_hud(const char* title_level, PlayerInput* player, ALLEGRO_FONT* font, LevelState level, FunctionType function_type);
+void render_hud(const char* title_level, PlayerInput* player, ALLEGRO_FONT* font, LevelState level, FunctionType function_type, FunctionType required_function);
+void render_axes(ALLEGRO_FONT* font);
 FunctionType verification_mouse_click_function_type(float mouse_x, float mouse_y);
 int verification_mouse_click_buttons(float mouse_x, float mouse_y);
 void verification_mouse_click_params(ALLEGRO_FONT* font, PlayerInput* player_input, float mouse_x, float mouse_y);
