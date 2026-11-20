@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
 #include <allegro5/allegro5.h>
@@ -62,7 +62,6 @@ static void playing_process_events(ALLEGRO_EVENT* event, GameContext* ctx, const
     if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN && event->mouse.button == 1) {
         float mouse_x = (float)event->mouse.x;
         float mouse_y = (float)event->mouse.y;
-
 
         if (level->function_type == FUNC_NONE) {
             FunctionType selected = verification_mouse_click_function_type(mouse_x, mouse_y);
